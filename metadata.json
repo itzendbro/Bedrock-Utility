@@ -1,0 +1,5 @@
+{
+  "name": "Bedrock Utility",
+  "description": "An AI-powered suite for Minecraft Bedrock creators. Generate, combine, and fix addons with ease. Supports custom items, blocks, entities, fog, particles, structures, and scripting. Describe your idea, and the AI brings it to life.",
+  "requestFramePermissions": []
+}
