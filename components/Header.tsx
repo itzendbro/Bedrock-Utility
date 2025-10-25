@@ -41,7 +41,7 @@ const Header: React.FC<HeaderProps> = ({ theme, onThemeChange, onGoHome }) => {
             </button>
             <div className="flex items-center gap-4">
                 <a 
-                    href="https://discord.gg/invite/fkksjsnc" 
+                    href="https://discord.gg/invite/djdnjajd" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="px-3 py-2 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors duration-200 text-sm font-semibold"

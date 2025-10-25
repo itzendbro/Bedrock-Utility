@@ -65,7 +65,7 @@ const Home: React.FC<HomeProps> = ({ onToolSelect }) => {
                 <div className="flex justify-center items-center gap-4 flex-wrap mb-4">
                     <span>App By Shadid234 and AKMPRO</span>
                     <span className="text-[var(--text-tertiary)]">|</span>
-                    <a href="https://discord.gg/invite/fkksjsnc" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent-primary)]">Discord</a>
+                    <a href="https://discord.gg/invite/djdnjajd" target="_blank" rel="noopener noreferrer" className="hover:text-[var(--accent-primary)]">Discord</a>
                     <span className="text-[var(--text-tertiary)]">|</span>
                     <a href="mailto:shadid234e@gmail.com" className="hover:text-[var(--accent-primary)]">Mail Me</a>
                     <span className="text-[var(--text-tertiary)]">|</span>
