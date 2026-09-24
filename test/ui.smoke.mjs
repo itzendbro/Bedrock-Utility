@@ -103,6 +103,20 @@ await step('sidebar shows the empty state', async () => {
   assert.equal(id('btn-build').disabled, true);
 });
 
+await step('the status bar reports the engine version', async () => {
+  assert.equal(id('sb-format').textContent, '—');
+  assert.equal(id('sb-objects').textContent, 'no project');
+  assert.equal(id('engine-chip').textContent, '1.21.10+');
+});
+
+await step('homepage renders numbered steps and a spec list, not icon tiles', async () => {
+  const steps = id('feature-grid').children;
+  assert.equal(steps.length, 4);
+  assert.ok(steps[0].querySelector('.step-n'), 'no step number');
+  assert.ok(id('tree-legend').children.length >= 4);
+  assert.ok(!id('feature-grid').querySelector('.feature'), 'old icon-tile markup still present');
+});
+
 /* ---- create a project through the real modal ---- */
 await step('"Create New Addon" opens the wizard', async () => {
   click('btn-create-new');
@@ -123,6 +137,8 @@ await step('filling the wizard creates the project', async () => {
   assert.equal(BU.state.meta.name, 'Void Wolves');
   assert.equal(BU.state.meta.formatVersion, '1.21.20');
   assert.deepEqual(BU.state.meta.version, [1, 2, 0]);
+  assert.equal(id('sb-format').textContent, '1.21.20');
+  assert.ok(id('sb-objects').textContent.includes('voidpack'), 'status bar did not update');
 });
 
 await step('dashboard shows stats, cards and validation', async () => {

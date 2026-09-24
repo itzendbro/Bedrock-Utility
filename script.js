@@ -214,10 +214,10 @@
   ];
 
   var KINDS = {
-    entity: { label: 'Entity', plural: 'Entities', bp: 'entities', rp: 'entity', color: '#57d364', icon: 'mob' },
-    item: { label: 'Item', plural: 'Items', bp: 'items', rp: 'items', color: '#58a6ff', icon: 'item' },
-    block: { label: 'Block', plural: 'Blocks', bp: '', rp: '', color: '#f0b429', icon: 'block' },
-    sound: { label: 'Sound', plural: 'Sounds', bp: '', rp: 'sounds', color: '#b98bff', icon: 'sound' }
+    entity: { label: 'Entity', plural: 'Entities', bp: 'entities', rp: 'entity', color: '#4ade80', icon: 'mob' },
+    item: { label: 'Item', plural: 'Items', bp: 'items', rp: 'items', color: '#4ade80', icon: 'item' },
+    block: { label: 'Block', plural: 'Blocks', bp: '', rp: '', color: '#4ade80', icon: 'block' },
+    sound: { label: 'Sound', plural: 'Sounds', bp: '', rp: 'sounds', color: '#4ade80', icon: 'sound' }
   };
 
   var STORAGE_KEY = 'bedrock-utility.project.v1';
@@ -1908,6 +1908,18 @@
     var chip = el('engine-chip');
     if (state.meta) chip.textContent = state.meta.formatVersion + '+';
     else chip.textContent = '1.21.10+';
+
+    // status bar
+    if (state.meta) {
+      el('sb-format').textContent = state.meta.formatVersion;
+      el('sb-engine').textContent = (state.meta.minEngineVersion || []).join('.');
+      var n = state.entities.length + state.items.length + state.blocks.length + state.sounds.length;
+      el('sb-objects').textContent = n + ' object' + (n === 1 ? '' : 's') + ' · ' + namespace();
+    } else {
+      el('sb-format').textContent = '—';
+      el('sb-engine').textContent = '—';
+      el('sb-objects').textContent = 'no project';
+    }
     var crumbs = el('crumbs');
     var parts = ['<span>Bedrock Utility</span>'];
     if (hasProject() && route.view !== 'home') {
@@ -1963,33 +1975,33 @@
         else navigate(go);
       });
     });
-    el('save-label').textContent = hasProject() ? 'Saved locally' : 'Autosave on';
+    el('save-label').textContent = hasProject() ? 'saved to this browser' : 'nothing saved yet';
   }
 
   /* ------------------------------- home ------------------------------- */
 
   var FEATURES = [
-    { icon: 'mob', title: 'Entity creator', text: 'Upload a .geo.json model, a .png texture and .animation.json files, then toggle 45+ Minecraft components with real input fields.' },
-    { icon: 'item', title: 'Items & blocks', text: 'Categories, groups, icons and per-face textures. Blocks get a full material_instances mapping automatically.' },
-    { icon: 'sound', title: 'Sounds & lang', text: 'Register custom .ogg sound events with category, volume and pitch, wired into your entities through sound_effects.' },
-    { icon: 'zip', title: 'One-click export', text: 'JSZip packages a valid Behavior Pack + Resource Pack tree into a .mcaddon — or export either pack as a .mcpack.' }
+    { title: 'Describe the pack', text: 'Name, author, description, namespace and target format_version. Four UUIDs are generated on the spot.' },
+    { title: 'Add content', text: 'Entities with models and animations, items, blocks and sound events — all from forms and toggles.' },
+    { title: 'Toggle components', text: '113 Minecraft components as switches, each revealing the fields it actually needs.' },
+    { title: 'Build the addon', text: 'The whole tree is validated and zipped into a .mcaddon, or either pack as a .mcpack.' }
   ];
 
   var LEGEND = [
-    { icon: 'file', t: 'manifest.json', d: 'format_version 2, header + module UUIDs, RP depends on the BP.' },
-    { icon: 'mob', t: 'entities/*.se.json', d: 'Server entity: description, components, component groups, events.' },
-    { icon: 'mob', t: 'entity/*.entity.json', d: 'Client entity: materials, textures, geometry, animations, spawn egg.' },
-    { icon: 'item', t: 'items/*.json', d: 'Item definition with menu_category and all item components.' },
-    { icon: 'block', t: 'blocks/*.json', d: 'Block definition with material_instances and physics components.' },
-    { icon: 'sound', t: 'sounds/sound_definitions.json', d: 'Sound events plus the legacy sounds.json registry.' }
+    { t: 'manifest.json', d: 'format_version 2, header + module UUIDs, RP depends on the BP.' },
+    { t: 'entities/*.se.json', d: 'Server entity: description, components, groups, events.' },
+    { t: 'entity/*.entity.json', d: 'Client entity: materials, textures, geometry, animations, spawn egg.' },
+    { t: 'items/*.json', d: 'Item definition with menu_category and item components.' },
+    { t: 'blocks/*.json', d: 'Block definition with material_instances and physics.' },
+    { t: 'sounds/sound_definitions.json', d: 'Sound events plus the legacy sounds.json registry.' }
   ];
 
   function renderHome() {
-    el('feature-grid').innerHTML = FEATURES.map(function (f) {
-      return '<div class="feature"><div class="f-ico">' + icon(f.icon) + '</div><h3>' + esc(f.title) + '</h3><p>' + esc(f.text) + '</p></div>';
+    el('feature-grid').innerHTML = FEATURES.map(function (f, i) {
+      return '<div class="step"><span class="step-n">0' + (i + 1) + '</span><h3>' + esc(f.title) + '</h3><p>' + esc(f.text) + '</p></div>';
     }).join('');
     el('tree-legend').innerHTML = LEGEND.map(function (l) {
-      return '<div class="legend-item"><span class="li-ico">' + icon(l.icon) + '</span><span><b>' + esc(l.t) + '</b><br>' + esc(l.d) + '</span></div>';
+      return '<div class="legend-item"><code>' + esc(l.t) + '</code><span>' + esc(l.d) + '</span></div>';
     }).join('');
 
     var recent = el('recent-panel');
@@ -2103,7 +2115,7 @@
       rows.push({ type: 'file', name: parts[parts.length - 1], depth: dirParts.length, size: fileSize(f), path: f.path });
     });
     return rows.map(function (r) {
-      var pad = 'padding-left:' + (r.depth * 14) + 'px';
+      var pad = 'padding-left:' + (r.depth * 14) + 'px;--ind:' + (r.depth * 14) + 'px';
       if (r.type === 'dir') {
         return '<div class="row dir" style="' + pad + '"><span class="ic">' + icon('folder') + '</span>' + esc(r.name) + '/</div>';
       }
@@ -3151,7 +3163,7 @@
       warn.innerHTML = icon('alert') + '<div><b>JSZip did not load.</b> The JSON generators still work, but ' +
         'downloading a .mcaddon needs JSZip. Reload the page, or serve the folder locally so ' +
         '<code>vendor/jszip.min.js</code> can be used as a fallback.</div>';
-      qs('.hero').appendChild(warn);
+      qs('#view-home').insertBefore(warn, qs('#view-home').firstChild);
     }
 
     var had = restore();

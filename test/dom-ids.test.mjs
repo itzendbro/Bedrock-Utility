@@ -22,7 +22,8 @@ const dynamic = new Set([
   'engine-chip', 'btn-build', 'btn-build-2', 'dash-title', 'dash-meta', 'dash-stats', 'card-grid',
   'validation', 'validation-badge', 'filetree', 'tree-count', 'feature-grid', 'tree-legend',
   'recent-panel', 'recent-list', 'home-hint', 'ed-title', 'ed-sub', 'ed-tabs', 'ed-body',
-  'preview-toggle', 'ed-preview', 'modal-root', 'toast-root', 'hidden-file', 'boot', 'app'
+  'preview-toggle', 'ed-preview', 'modal-root', 'toast-root', 'hidden-file', 'boot', 'app',
+  'statusbar', 'sb-format', 'sb-engine', 'sb-objects', 'sb-save'
 ]);
 
 let bad = 0;

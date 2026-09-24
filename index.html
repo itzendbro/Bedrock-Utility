@@ -75,28 +75,38 @@
 
       <!-- ------------------------ HOME ------------------------ -->
       <section class="view" id="view-home" data-view="home">
-        <div class="hero">
-          <p class="eyebrow">Minecraft Bedrock Edition &middot; MCPE 1.21.10+</p>
-          <h1>Build real addons <em>without writing code</em></h1>
-          <p class="lede">
-            Bedrock Utility turns plain HTML forms into a complete Behavior Pack and Resource Pack:
-            manifests, entities, items, blocks and sounds are generated as valid Bedrock JSON and zipped
-            straight into a <code>.mcaddon</code> you can open on your phone or Windows 10/11.
-          </p>
-          <div class="hero-cta">
-            <button class="btn primary xl" id="btn-create-new">
-              <svg viewBox="0 0 24 24" class="ico"><path d="M12 5v14M5 12h14"/></svg>
-              Create New Addon
-            </button>
-            <button class="btn outline xl" id="btn-import-home">
-              <svg viewBox="0 0 24 24" class="ico"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-              Import existing addon
-            </button>
+        <div class="launch">
+          <div class="panel launch-main">
+            <div class="panel-head">
+              <h2>New addon</h2>
+              <span class="badge">writes manifest.json</span>
+            </div>
+            <p class="lede">
+              Bedrock Utility turns plain HTML forms into a complete Behavior Pack and Resource Pack.
+              Manifests, entities, items, blocks and sounds are generated as valid Bedrock JSON and zipped
+              straight into a <code>.mcaddon</code> you can open on your phone or on Windows 10/11.
+            </p>
+            <div class="launch-cta">
+              <button class="btn primary xl" id="btn-create-new">
+                <svg viewBox="0 0 24 24" class="ico"><path d="M12 5v14M5 12h14"/></svg>
+                Create New Addon
+              </button>
+              <button class="btn outline xl" id="btn-import-home">
+                <svg viewBox="0 0 24 24" class="ico"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                Import existing addon
+              </button>
+            </div>
+            <p class="hint" id="home-hint">Everything runs locally in your browser &mdash; no uploads, no account.</p>
           </div>
-          <p class="hint" id="home-hint">Everything runs locally in your browser &mdash; no uploads, no account.</p>
-        </div>
 
-        <div class="feature-grid" id="feature-grid"></div>
+          <div class="panel launch-side">
+            <div class="panel-head">
+              <h2>Pack anatomy</h2>
+              <span class="badge">target 1.21.10+</span>
+            </div>
+            <div class="tree-legend" id="tree-legend"></div>
+          </div>
+        </div>
 
         <section class="panel" id="recent-panel" hidden>
           <div class="panel-head">
@@ -106,8 +116,8 @@
         </section>
 
         <section class="panel">
-          <div class="panel-head"><h2>What lands in the zip</h2></div>
-          <div class="tree-legend" id="tree-legend"></div>
+          <div class="panel-head"><h2>How it works</h2></div>
+          <div class="feature-grid" id="feature-grid"></div>
         </section>
       </section>
 
@@ -197,6 +207,18 @@
 
     </main>
   </div>
+
+  <footer class="statusbar" id="statusbar">
+    <span class="sb-item">format_version <b id="sb-format">1.21.10</b></span>
+    <span class="sb-sep"></span>
+    <span class="sb-item">min_engine <b id="sb-engine">1.21.10</b></span>
+    <span class="sb-sep"></span>
+    <span class="sb-item" id="sb-objects">no project</span>
+    <span class="sb-spacer"></span>
+    <span class="sb-item sb-dim sb-version">bedrock-utility v1.0.0</span>
+    <span class="sb-sep"></span>
+    <span class="sb-item sb-dim" id="sb-save">autosave on</span>
+  </footer>
 </div>
 
 <!-- Fatal-error / loading fallback for browsers without JS -->
