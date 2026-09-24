@@ -1,2 +1,131 @@
-# Bedrock-Utility
-A tool that can make Minecraft Bedrock addon.
+# Bedrock Utility
+
+A no-code **Minecraft Bedrock Edition (MCPE 1.21.10+) addon creation hub** that runs
+entirely in the browser. Fill in forms, toggle Minecraft components, and export a real
+Behavior Pack + Resource Pack as a single `.mcaddon`.
+
+```
+index.html      SPA shell (Homepage → Project Dashboard → Component Editor)
+style.css       dark dashboard theme (Grid + Flexbox, no frameworks)
+script.js       state, component schemas, JSON generators, JSZip export, UI
+vendor/         local fallback copy of JSZip (the page loads it from a CDN first)
+test/           Node test suites for the generators and the UI pipeline
+docs/           generated component reference
+```
+
+## Quick start
+
+Any static file server works — there is no build step:
+
+```bash
+# option 1: python
+python3 -m http.server 8080
+
+# option 2: node
+npx serve .
+```
+
+Then open <http://localhost:8080>. Opening `index.html` straight from disk also works
+in most browsers, but a local server is recommended (some browsers block
+`localStorage` and Blob downloads on `file://` URLs).
+
+## Using it
+
+1. **Homepage** → *Create New Addon*: name, author, description, namespace, version and
+   the target `format_version` (anything from `1.21.10` upwards). A `manifest.json`
+   is generated immediately with four fresh UUIDs.
+2. **Dashboard** → four cards: **Entities**, **Items**, **Blocks**, **Sounds**. Each card
+   shows how many are defined and links to the editor. The dashboard also shows a live
+   validation panel and the full generated file tree.
+3. **Component Editor** → per entry: identity, assets, the component toggle list,
+   component groups, events, spawning and a live JSON preview (Behavior / Resource side).
+4. **Build Addon** → validation runs first, then you can download a `.mcaddon`
+   (both packs), a single `.mcpack`, or just the JSON.
+
+### Entities
+
+Upload a Blockbench model (`.geo.json`), a texture (`.png`) and animations
+(`.animation.json`). The editor reads the geometry identifier and the animation keys out
+of the files you upload and wires them into the client entity automatically. More than
+45 components are available as toggle switches — health, movement, navigation, physics,
+attack, all the `minecraft:behavior.*` goals, families, loot, breeding, taming, and so on.
+Anything not covered can be pasted as raw JSON.
+
+### Items and blocks
+
+Items get a creative category/group, an icon that is registered in
+`textures/item_texture.json`, and the usual item components. Blocks get a cube or custom
+geometry with per-face textures, and `minecraft:material_instances` is generated from the
+texture mapping for you.
+
+### Sounds
+
+Register `.ogg` files as sound events with a category, volume and pitch. They are written
+to `sounds/sound_definitions.json` (and the legacy `sounds.json`) and are exposed to every
+entity through the client entity's `sound_effects` map, so animation sound-effect
+timelines can reference them.
+
+## What lands in the zip
+
+```
+My Addon BP/
+  manifest.json                     format_version 2, header + data module UUIDs
+  entities/<name>.se.json           server entity: description, components, groups, events
+  items/<name>.json                 item definition
+  blocks/<name>.json                block definition + material_instances
+  spawn_rules/<name>.json           optional natural spawning
+  texts/en_US.lang                  pack.name, entity/item/tile display names
+  pack_icon.png                     optional
+My Addon RP/
+  manifest.json                     resources module + dependency on the BP header UUID
+  entity/<name>.entity.json         client entity: materials, textures, geometry, animations
+  models/entity/<name>.geo.json     uploaded model
+  animations/<name>.animation.json  uploaded animation
+  render_controllers/<name>.rc.json generated render controller
+  textures/entity/<name>.png        uploaded texture
+  items/<name>.json                 client item
+  textures/item_texture.json        item atlas
+  textures/blocks/<name>.png        block textures
+  textures/items/<name>.png         item textures
+  sounds/sound_definitions.json     sound events
+  sounds/sounds.json                legacy sound registry
+  sounds/<name>.ogg                 uploaded audio
+  texts/en_US.lang
+```
+
+The resource pack declares a dependency on the behavior pack's header UUID, which is what
+makes a `.mcaddon` work when both packs are dropped into a world at once.
+
+## Technical notes
+
+* Every generated file is written with `JSON.stringify(…, 2)`, so there are no trailing
+  commas or comments anywhere.
+* `format_version` for entities, items and blocks follows the project setting and is
+  validated to be `1.21.10` or higher. Fixed format versions are used for the
+  resource-pack side files (client entity `1.10.0`, render controller `1.10.0`,
+  animation `1.8.0`, sound definitions `1.14.0`, spawn rules `1.8.0`).
+* Identifiers must match `^[a-z0-9_.-]+:[a-z0-9_.-]+$` and must be unique across the
+  whole project; the validator blocks the build on violations.
+* File names inside the packs are normalised to lowercase, because Bedrock requires it.
+* The project is stored in `localStorage` only. If the 5 MB quota is exceeded the
+  binary assets are dropped from the saved copy rather than failing the save.
+
+## Importing
+
+*Import* accepts an existing `.mcaddon`, `.mcpack` or `.zip` and rebuilds the project:
+manifests, entities, items, blocks, sound events and their audio files. Uploaded models,
+textures and animations are not restored (Bedrock packs can reference them, but the
+importer keeps the definitions only).
+
+## Tests
+
+```bash
+npm test                 # all three suites
+node test/build.test.mjs # generators, validation, manifests, zip round trip, import
+node test/ui.smoke.mjs  # drives the real UI inside a minimal DOM
+node test/dom-ids.test.mjs # every id referenced by script.js exists in index.html
+```
+
+The suites run on plain Node with no dependencies — JSZip is loaded from
+`vendor/jszip.min.js`. `test/ui.smoke.mjs` includes `test/minidom.mjs`, a small DOM
+implementation used to boot the app headlessly.

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Bedrock Utility - a no-code Minecraft Bedrock Edition addon (MCPE 1.21.10+) creation hub.">
+<title>Bedrock Utility &middot; Minecraft Addon Creation Hub</title>
+
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2357d364'/%3E%3Cpath d='M8 10h16v3H8zm0 5h16v3H8zm0 5h10v3H8z' fill='%230b0f14'/%3E%3C/svg%3E">
+
+<!--
+  JSZip is loaded from a CDN (as required). If every CDN is unreachable the
+  local vendored copy in vendor/jszip.min.js is used instead, so the app keeps
+  working offline. The library is only referenced as the global `JSZip`.
+-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>window.JSZip||document.write('<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\/script>');</script>
+<script>window.JSZip||document.write('<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"><\/script>');</script>
+<script>window.JSZip||document.write('<script src="vendor/jszip.min.js"><\/script>');</script>
+</head>
+
+<body>
+<div id="app" class="app" hidden>
+
+  <!-- ============================ TOP BAR ============================ -->
+  <header class="topbar">
+    <button class="icon-btn only-mobile" id="btn-menu" aria-label="Toggle navigation" title="Menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+
+    <a class="brand" href="#/home" data-nav="home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 9h8M8 13h8M8 17h5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+      </span>
+      <span class="brand-text">
+        <strong>Bedrock&nbsp;Utility</strong>
+        <small>Addon Creation Hub</small>
+      </span>
+    </a>
+
+    <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+
+    <div class="topbar-actions">
+      <span class="engine-chip" id="engine-chip" title="Target Bedrock engine version">1.21.10+</span>
+      <button class="btn ghost" id="btn-import" title="Open an existing .mcaddon / .mcpack and continue editing it">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        Import
+      </button>
+      <button class="btn primary" id="btn-build" title="Package the project into a .mcaddon / .mcpack">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M4 7h16v13H4zM8 7V4h8v3"/></svg>
+        Build Addon
+      </button>
+    </div>
+  </header>
+
+  <div class="shell">
+    <!-- ============================ SIDEBAR ============================ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="side-project" id="side-project"></div>
+      <nav class="side-nav" id="side-nav" aria-label="Project sections"></nav>
+      <div class="side-foot">
+        <div class="side-foot-row">
+          <span class="dot" id="save-dot"></span>
+          <span id="save-label">Autosave on</span>
+        </div>
+        <button class="btn tiny ghost full" id="btn-reset" title="Delete the current project from this browser">New / Reset project</button>
+      </div>
+    </aside>
+
+    <!-- ============================ MAIN ============================ -->
+    <main class="main" id="main">
+
+      <!-- ------------------------ HOME ------------------------ -->
+      <section class="view" id="view-home" data-view="home">
+        <div class="hero">
+          <p class="eyebrow">Minecraft Bedrock Edition &middot; MCPE 1.21.10+</p>
+          <h1>Build real addons <em>without writing code</em></h1>
+          <p class="lede">
+            Bedrock Utility turns plain HTML forms into a complete Behavior Pack and Resource Pack:
+            manifests, entities, items, blocks and sounds are generated as valid Bedrock JSON and zipped
+            straight into a <code>.mcaddon</code> you can open on your phone or Windows 10/11.
+          </p>
+          <div class="hero-cta">
+            <button class="btn primary xl" id="btn-create-new">
+              <svg viewBox="0 0 24 24" class="ico"><path d="M12 5v14M5 12h14"/></svg>
+              Create New Addon
+            </button>
+            <button class="btn outline xl" id="btn-import-home">
+              <svg viewBox="0 0 24 24" class="ico"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+              Import existing addon
+            </button>
+          </div>
+          <p class="hint" id="home-hint">Everything runs locally in your browser &mdash; no uploads, no account.</p>
+        </div>
+
+        <div class="feature-grid" id="feature-grid"></div>
+
+        <section class="panel" id="recent-panel" hidden>
+          <div class="panel-head">
+            <h2>Continue where you left off</h2>
+          </div>
+          <div id="recent-list" class="recent-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>What lands in the zip</h2></div>
+          <div class="tree-legend" id="tree-legend"></div>
+        </section>
+      </section>
+
+      <!-- ------------------------ DASHBOARD ------------------------ -->
+      <section class="view" id="view-dashboard" data-view="dashboard" hidden>
+        <div class="page-head">
+          <div>
+            <h1 id="dash-title">Project</h1>
+            <p class="sub" id="dash-meta"></p>
+          </div>
+          <div class="page-head-actions">
+            <button class="btn outline" id="btn-edit-meta">Pack details</button>
+            <button class="btn primary" id="btn-build-2">Build Addon</button>
+          </div>
+        </div>
+
+        <div class="stat-row" id="dash-stats"></div>
+
+        <div class="card-grid" id="card-grid"></div>
+
+        <div class="dash-cols">
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Export</h2>
+              <span class="badge">JSZip</span>
+            </div>
+            <p class="muted small">The builder writes a real Behavior Pack + Resource Pack tree and zips it.
+              <code>.mcaddon</code> contains both packs, <code>.mcpack</code> contains one.</p>
+            <div class="btn-row">
+              <button class="btn primary" id="btn-export-mcaddon">Download .mcaddon</button>
+              <button class="btn outline" id="btn-export-bp">Behavior .mcpack</button>
+              <button class="btn outline" id="btn-export-rp">Resource .mcpack</button>
+            </div>
+            <div class="btn-row">
+              <button class="btn ghost" id="btn-download-manifest">manifest.json</button>
+              <button class="btn ghost" id="btn-download-lang">en_US.lang</button>
+              <button class="btn ghost" id="btn-copy-json">Copy all JSON</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Validation</h2>
+              <span class="badge" id="validation-badge">0 issues</span>
+            </div>
+            <div id="validation" class="validation"></div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>Generated file tree</h2>
+            <span class="badge" id="tree-count">0 files</span>
+          </div>
+          <div class="filetree" id="filetree"></div>
+        </section>
+      </section>
+
+      <!-- ------------------------ EDITOR ------------------------ -->
+      <section class="view" id="view-editor" data-view="editor" hidden>
+        <div class="page-head">
+          <div class="ed-head-left">
+            <button class="btn ghost" id="btn-ed-back">&larr; Dashboard</button>
+            <div>
+              <h1 id="ed-title">Entity</h1>
+              <p class="sub" id="ed-sub"></p>
+            </div>
+          </div>
+          <div class="page-head-actions">
+            <button class="btn ghost" id="btn-ed-duplicate">Duplicate</button>
+            <button class="btn danger" id="btn-ed-delete">Delete</button>
+          </div>
+        </div>
+
+        <div class="editor">
+          <div class="editor-tabs" id="ed-tabs" role="tablist"></div>
+          <div class="editor-body" id="ed-body"></div>
+          <aside class="editor-preview">
+            <div class="preview-head">
+              <span>Live JSON</span>
+              <div class="preview-toggle" id="preview-toggle"></div>
+            </div>
+            <pre class="code" id="ed-preview"></pre>
+          </aside>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- Fatal-error / loading fallback for browsers without JS -->
+<noscript><div class="noscript">Bedrock Utility needs JavaScript enabled.</div></noscript>
+<div id="boot" class="boot"><div class="boot-card"><div class="spinner"></div><p>Loading Bedrock Utility&hellip;</p></div></div>
+
+<div id="modal-root"></div>
+<div id="toast-root" aria-live="polite"></div>
+<input type="file" id="hidden-file" hidden>
+
+<script src="script.js"></script>
+</body>
+</html>

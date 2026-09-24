@@ -1,0 +1,23 @@
+{
+  "name": "bedrock-utility",
+  "version": "1.0.0",
+  "description": "No-code Minecraft Bedrock (MCPE 1.21.10+) addon creation hub - HTML5, CSS3 and vanilla JavaScript.",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node test/dom-ids.test.mjs && node test/build.test.mjs && node test/ui.smoke.mjs",
+    "test:build": "node test/build.test.mjs",
+    "test:ui": "node test/ui.smoke.mjs",
+    "test:ids": "node test/dom-ids.test.mjs"
+  },
+  "keywords": [
+    "minecraft",
+    "bedrock",
+    "mcpe",
+    "addon",
+    "behavior-pack",
+    "resource-pack",
+    "no-code"
+  ]
+}

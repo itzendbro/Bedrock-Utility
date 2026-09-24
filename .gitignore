@@ -1,0 +1,7 @@
+# Dependencies
+node_modules/
+
+# Local tooling / scratch
+.arena/
+*.log
+.DS_Store
