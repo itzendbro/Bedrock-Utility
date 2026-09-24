@@ -4,9 +4,15 @@ A no-code **Minecraft Bedrock Edition (MCPE 1.21.10+) addon creation hub** that 
 entirely in the browser. Fill in forms, toggle Minecraft components, and export a real
 Behavior Pack + Resource Pack as a single `.mcaddon`.
 
+The interface is deliberately modelled on **Minecraft Pocket Edition's "Ore UI"** — the
+screens Bedrock players already know: a near-black canvas, a light app bar, soft rounded
+panels with a lighter header strip, Minecraft green as the single accent, and controls
+sized for a thumb. Buttons keep the classic 2px Minecraft bevel. The app logo is the
+toolbox emoji on a green tile.
+
 ```
 index.html      SPA shell (Homepage → Project Dashboard → Component Editor)
-style.css       dark dashboard theme (Grid + Flexbox, no frameworks)
+style.css       Ore UI design system (Grid + Flexbox, no frameworks)
 script.js       state, component schemas, JSON generators, JSZip export, UI
 vendor/         local fallback copy of JSZip (the page loads it from a CDN first)
 test/           Node test suites for the generators and the UI pipeline

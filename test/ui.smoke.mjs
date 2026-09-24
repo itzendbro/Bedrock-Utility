@@ -98,6 +98,15 @@ await step('home page renders the feature grid and file legend', async () => {
   assert.equal(id('recent-panel').hidden, true);
 });
 
+await step('the Ore UI shell carries the toolbox logo and plain-language steps', async () => {
+  assert.equal(q('.brand-mark').textContent, '\u{1F9F0}', 'brand mark is not the toolbox emoji');
+  const steps = id('feature-grid').children;
+  assert.equal(steps.length, 4);
+  assert.equal(steps[0].querySelector('.step-n').textContent, '01');
+  assert.match(id('tree-legend').textContent, /Tells Minecraft the pack exists/);
+  assert.match(q('.lede').textContent, /\.mcaddon/);
+});
+
 await step('sidebar shows the empty state', async () => {
   assert.ok(id('side-project').textContent.includes('No project'));
   assert.equal(id('btn-build').disabled, true);
@@ -122,6 +131,16 @@ await step('"Create New Addon" opens the wizard', async () => {
   click('btn-create-new');
   assert.ok(q('.modal'), 'modal not rendered');
   assert.equal(qa('[data-i]').length, 6);
+  // the wizard asks in plain words, not in schema names
+  // NB: the mini-DOM used by these tests has no ">" combinator, so walk fields instead
+  const labels = qa('.modal .field').map((f) => {
+    const l = f.querySelector('label');
+    return l ? l.textContent.trim() : '';
+  });
+  assert.deepEqual(labels, [
+    'Pack name', 'Made by', 'What does it do?', 'Short id',
+    'Oldest Minecraft version', 'Addon version'
+  ]);
 });
 
 await step('filling the wizard creates the project', async () => {
@@ -220,14 +239,14 @@ await step('switching tabs renders every editor section', async () => {
 });
 
 await step('component groups and events can be created', async () => {
-  tab('Groups');
+  tab('Variants');
   id('add-group').click();
   fill('[data-i="0"]', 'angry');
   q('[data-yes]').click();
   await tick();
   assert.ok(BU.state.entities[0].groups.angry, 'group not created');
 
-  tab('Events');
+  tab('Reactions');
   id('add-event').click();
   q('[data-yes]').click();
   await tick();
@@ -244,7 +263,7 @@ await step('spawn rules toggle generates a spawn_rules file', async () => {
 });
 
 await step('custom JSON components are merged', async () => {
-  tab('Custom');
+  tab('Raw JSON');
   id('add-custom').click();
   fill('[data-i="0"]', 'minecraft:interact');
   fill('[data-i="1"]', '{"interactions":[]}');

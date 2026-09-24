@@ -9,7 +9,8 @@
 
 <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 <link rel="stylesheet" href="style.css">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2357d364'/%3E%3Cpath d='M8 10h16v3H8zm0 5h16v3H8zm0 5h10v3H8z' fill='%230b0f14'/%3E%3C/svg%3E">
+<!-- App logo: the toolbox emoji on a Minecraft-green tile -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233f8a26'/%3E%3Ctext x='16' y='24' font-size='19' text-anchor='middle'%3E%F0%9F%A7%B0%3C/text%3E%3C/svg%3E">
 
 <!--
   JSZip is loaded from a CDN (as required). If every CDN is unreachable the
@@ -17,9 +18,9 @@
   working offline. The library is only referenced as the global `JSZip`.
 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script>window.JSZip||document.write('<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\/script>');</script>
-<script>window.JSZip||document.write('<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"><\/script>');</script>
-<script>window.JSZip||document.write('<script src="vendor/jszip.min.js"><\/script>');</script>
+<script>window.JSZip||document.write('<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\\/script>');</script>
+<script>window.JSZip||document.write('<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"><\\/script>');</script>
+<script>window.JSZip||document.write('<script src="vendor/jszip.min.js"><\\/script>');</script>
 </head>
 
 <body>
@@ -32,9 +33,7 @@
     </button>
 
     <a class="brand" href="#/home" data-nav="home">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 9h8M8 13h8M8 17h5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-      </span>
+      <span class="brand-mark" aria-hidden="true">🧰</span>
       <span class="brand-text">
         <strong>Bedrock&nbsp;Utility</strong>
         <small>Addon Creation Hub</small>
@@ -46,11 +45,11 @@
     <div class="topbar-actions">
       <span class="engine-chip" id="engine-chip" title="Target Bedrock engine version">1.21.10+</span>
       <button class="btn ghost" id="btn-import" title="Open an existing .mcaddon / .mcpack and continue editing it">
-        <svg viewBox="0 0 24 24" class="ico"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
         Import
       </button>
       <button class="btn primary" id="btn-build" title="Package the project into a .mcaddon / .mcpack">
-        <svg viewBox="0 0 24 24" class="ico"><path d="M4 7h16v13H4zM8 7V4h8v3"/></svg>
+        <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M4 7h16v13H4zM8 7V4h8v3"/></svg>
         Build Addon
       </button>
     </div>
@@ -78,22 +77,22 @@
         <div class="launch">
           <div class="panel launch-main">
             <div class="panel-head">
-              <h2>New addon</h2>
-              <span class="badge">writes manifest.json</span>
+              <h2>Start a new addon</h2>
+              <span class="badge">runs in your browser</span>
             </div>
             <p class="lede">
-              Bedrock Utility turns plain HTML forms into a complete Behavior Pack and Resource Pack.
-              Manifests, entities, items, blocks and sounds are generated as valid Bedrock JSON and zipped
-              straight into a <code>.mcaddon</code> you can open on your phone or on Windows 10/11.
+              Fill in a few forms and Bedrock Utility writes a real Behavior Pack and Resource Pack for
+              MCPE&nbsp;1.21.10 and newer. Manifests, mobs, items, blocks and sounds are generated as valid
+              Bedrock JSON, then zipped into a <code>.mcaddon</code> you can open on your phone or on Windows.
             </p>
             <div class="launch-cta">
               <button class="btn primary xl" id="btn-create-new">
-                <svg viewBox="0 0 24 24" class="ico"><path d="M12 5v14M5 12h14"/></svg>
+                <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                 Create New Addon
               </button>
               <button class="btn outline xl" id="btn-import-home">
-                <svg viewBox="0 0 24 24" class="ico"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-                Import existing addon
+                <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                Open an existing addon
               </button>
             </div>
             <p class="hint" id="home-hint">Everything runs locally in your browser &mdash; no uploads, no account.</p>
@@ -101,8 +100,8 @@
 
           <div class="panel launch-side">
             <div class="panel-head">
-              <h2>Pack anatomy</h2>
-              <span class="badge">target 1.21.10+</span>
+              <h2>What you get</h2>
+              <span class="badge">1.21.10+</span>
             </div>
             <div class="tree-legend" id="tree-legend"></div>
           </div>
@@ -110,7 +109,7 @@
 
         <section class="panel" id="recent-panel" hidden>
           <div class="panel-head">
-            <h2>Continue where you left off</h2>
+            <h2>Pick up where you left off</h2>
           </div>
           <div id="recent-list" class="recent-list"></div>
         </section>
@@ -160,7 +159,7 @@
 
           <section class="panel">
             <div class="panel-head">
-              <h2>Validation</h2>
+              <h2>Check my addon</h2>
               <span class="badge" id="validation-badge">0 issues</span>
             </div>
             <div id="validation" class="validation"></div>

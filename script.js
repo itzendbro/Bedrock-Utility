@@ -1941,7 +1941,7 @@
       var total = counts.reduce(function (a, b) { return a + b; }, 0);
       box.innerHTML =
         '<div class="sp-name">' + esc(state.meta.name) + '</div>' +
-        '<div class="sp-sub">' + esc(namespace()) + ':' + ' &middot; v' + (state.meta.version || []).join('.') + '</div>' +
+        '<div class="sp-sub">' + esc(namespace()) + ' &middot; v' + (state.meta.version || []).join('.') + '</div>' +
         '<div class="sp-bar"><i style="width:' + Math.min(100, total * 10) + '%"></i></div>';
     }
 
@@ -1981,19 +1981,19 @@
   /* ------------------------------- home ------------------------------- */
 
   var FEATURES = [
-    { title: 'Describe the pack', text: 'Name, author, description, namespace and target format_version. Four UUIDs are generated on the spot.' },
-    { title: 'Add content', text: 'Entities with models and animations, items, blocks and sound events — all from forms and toggles.' },
-    { title: 'Toggle components', text: '113 Minecraft components as switches, each revealing the fields it actually needs.' },
-    { title: 'Build the addon', text: 'The whole tree is validated and zipped into a .mcaddon, or either pack as a .mcpack.' }
+    { title: 'Name your pack', text: 'A name, your name and what the addon does. Four UUIDs are generated for you.' },
+    { title: 'Add your content', text: 'Mobs, items, blocks and sounds — one simple form at a time.' },
+    { title: 'Flip the switches', text: '113 real Minecraft components. Turn one on and only the settings it needs appear.' },
+    { title: 'Build it', text: 'The JSON is checked for mistakes, then zipped into a .mcaddon ready to open on your phone.' }
   ];
 
   var LEGEND = [
-    { t: 'manifest.json', d: 'format_version 2, header + module UUIDs, RP depends on the BP.' },
-    { t: 'entities/*.se.json', d: 'Server entity: description, components, groups, events.' },
-    { t: 'entity/*.entity.json', d: 'Client entity: materials, textures, geometry, animations, spawn egg.' },
-    { t: 'items/*.json', d: 'Item definition with menu_category and item components.' },
-    { t: 'blocks/*.json', d: 'Block definition with material_instances and physics.' },
-    { t: 'sounds/sound_definitions.json', d: 'Sound events plus the legacy sounds.json registry.' }
+    { t: 'manifest.json', d: 'Tells Minecraft the pack exists and which pack loads first.' },
+    { t: 'entities/*.se.json', d: 'How your mob acts: health, movement, what it attacks.' },
+    { t: 'entity/*.entity.json', d: 'How your mob looks: model, texture, animations, spawn egg.' },
+    { t: 'items/*.json', d: 'Your item\u2019s icon, where it sits in the menu, and what it does.' },
+    { t: 'blocks/*.json', d: 'Your block\u2019s textures, hardness and light.' },
+    { t: 'sounds/sound_definitions.json', d: 'Your sound events, so mobs and animations can play them.' }
   ];
 
   function renderHome() {
@@ -2011,7 +2011,7 @@
       el('recent-list').innerHTML =
         '<div class="entry-row"><div class="e-ico">' + icon('cube') + '</div>' +
         '<div class="e-main"><div class="e-name">' + esc(state.meta.name) + '</div>' +
-        '<div class="e-id">' + esc(namespace()) + ' &middot; ' + counts + ' object(s) &middot; v' + (state.meta.version || []).join('.') + '</div></div>' +
+        '<div class="e-id">' + esc(namespace()) + ' &middot; ' + counts + (counts === 1 ? ' thing' : ' things') + ' &middot; v' + (state.meta.version || []).join('.') + '</div></div>' +
         '<div class="e-actions"><button class="btn primary tiny" data-open-dash>Open dashboard</button></div></div>';
       qs('[data-open-dash]', el('recent-list')).addEventListener('click', function () { navigate('dashboard'); });
       el('home-hint').textContent = 'Your last project is still here — it is stored in this browser only.';
@@ -2137,14 +2137,14 @@
       return;
     }
     promptDialog('Create a new addon', [
-      { key: 'name', label: 'Pack name', value: 'My First Addon', help: 'Shown in the Minecraft pack list.' },
-      { key: 'author', label: 'Author', value: 'YourName' },
-      { key: 'description', label: 'Description', value: 'A Minecraft Bedrock addon created with Bedrock Utility.', type: 'textarea', span: true },
-      { key: 'namespace', label: 'Namespace', value: 'mypack', help: 'Used for every identifier: namespace:name' },
-      { key: 'formatVersion', label: 'format_version', type: 'select', value: '1.21.10',
+      { key: 'name', label: 'Pack name', value: 'My First Addon', help: 'This is what players see in the Minecraft pack list.' },
+      { key: 'author', label: 'Made by', value: 'YourName', help: 'Your name or studio name.' },
+      { key: 'description', label: 'What does it do?', value: 'A Minecraft Bedrock addon created with Bedrock Utility.', type: 'textarea', span: true },
+      { key: 'namespace', label: 'Short id', value: 'mypack', help: 'Goes in front of every name, like mypack:my_mob. Lowercase letters, numbers and underscores only.' },
+      { key: 'formatVersion', label: 'Oldest Minecraft version', type: 'select', value: '1.21.10',
         options: FORMAT_VERSIONS.slice().reverse().map(function (v) { return [v, v]; }),
-        help: 'Must be 1.21.10 or higher.' },
-      { key: 'version', label: 'Version (x.y.z)', value: '1.0.0' }
+        help: 'The oldest version your addon should work on. 1.21.10 or higher.' },
+      { key: 'version', label: 'Addon version', value: '1.0.0', help: 'Bump this whenever you release an update.' }
     ], 'Create addon').then(function (res) {
       if (!res) return;
       state.meta = defaultMeta();
@@ -2156,7 +2156,7 @@
       var vparts = String(res.version || '1.0.0').split('.').map(function (n) { return parseInt(n, 10) || 0; });
       while (vparts.length < 3) vparts.push(0);
       state.meta.version = vparts.slice(0, 3);
-      state.meta.minEngineVersion = [1, 21, 10];
+      state.meta.minEngineVersion = state.meta.formatVersion.split('.').map(function (n) { return parseInt(n, 10) || 0; });
       state.entities = []; state.items = []; state.blocks = []; state.sounds = [];
       onChange();
       navigate('dashboard');
@@ -2167,15 +2167,16 @@
   function openMetaModal() {
     var m = state.meta;
     promptDialog('Pack details', [
-      { key: 'name', label: 'Pack name', value: m.name },
-      { key: 'author', label: 'Author', value: m.author },
-      { key: 'description', label: 'Description', value: m.description, type: 'textarea', span: true },
-      { key: 'namespace', label: 'Namespace', value: m.namespace },
-      { key: 'formatVersion', label: 'format_version', type: 'select', value: m.formatVersion,
-        options: FORMAT_VERSIONS.slice().reverse().map(function (v) { return [v, v]; }) },
-      { key: 'minEngine', label: 'min_engine_version (x.y.z)', value: (m.minEngineVersion || []).join('.') },
-      { key: 'version', label: 'Version (x.y.z)', value: (m.version || []).join('.') },
-      { key: 'icon', label: 'Pack icon', value: m.icon ? 'replace' : '', help: 'Leave empty to keep the current icon. 512×512 PNG recommended.' }
+      { key: 'name', label: 'Pack name', value: m.name, help: 'Shown to players in the Minecraft pack list.' },
+      { key: 'author', label: 'Made by', value: m.author },
+      { key: 'description', label: 'What does it do?', value: m.description, type: 'textarea', span: true },
+      { key: 'namespace', label: 'Short id', value: m.namespace, help: 'Goes in front of every name, like mypack:my_mob.' },
+      { key: 'formatVersion', label: 'Oldest Minecraft version', type: 'select', value: m.formatVersion,
+        options: FORMAT_VERSIONS.slice().reverse().map(function (v) { return [v, v]; }),
+        help: 'Raising this unlocks newer components but drops older phones.' },
+      { key: 'minEngine', label: 'Minimum engine version', value: (m.minEngineVersion || []).join('.'), help: 'Usually the same as the version above.' },
+      { key: 'version', label: 'Addon version', value: (m.version || []).join('.') },
+      { key: 'icon', label: 'Pack icon', value: m.icon ? 'replace' : '', help: 'Type "replace" to pick a new 512×512 PNG. Leave empty to keep the current icon.' }
     ], 'Save').then(function (res) {
       if (!res) return;
       m.name = (res.name || m.name).trim();
@@ -2311,25 +2312,25 @@
 
   var TABS = {
     entity: [
-      { id: 'identity', label: 'Identity' },
-      { id: 'assets', label: 'Assets' },
+      { id: 'identity', label: 'Basics' },
+      { id: 'assets', label: 'Model & look' },
       { id: 'components', label: 'Components' },
-      { id: 'groups', label: 'Groups' },
-      { id: 'events', label: 'Events' },
+      { id: 'groups', label: 'Variants' },
+      { id: 'events', label: 'Reactions' },
       { id: 'spawn', label: 'Spawning' },
-      { id: 'custom', label: 'Custom JSON' }
+      { id: 'custom', label: 'Raw JSON' }
     ],
     item: [
-      { id: 'identity', label: 'Identity' },
+      { id: 'identity', label: 'Basics' },
       { id: 'assets', label: 'Icon & texture' },
       { id: 'components', label: 'Components' },
-      { id: 'custom', label: 'Custom JSON' }
+      { id: 'custom', label: 'Raw JSON' }
     ],
     block: [
-      { id: 'identity', label: 'Identity' },
+      { id: 'identity', label: 'Basics' },
       { id: 'assets', label: 'Textures' },
       { id: 'components', label: 'Components' },
-      { id: 'custom', label: 'Custom JSON' }
+      { id: 'custom', label: 'Raw JSON' }
     ],
     sound: [
       { id: 'identity', label: 'Sound event' },
@@ -2565,7 +2566,7 @@
 
     var wrap = document.createElement('div');
     wrap.className = 'panel';
-    wrap.innerHTML = '<div class="panel-head"><h2>' + esc(KINDS[kind].label) + ' identity</h2>' +
+    wrap.innerHTML = '<div class="panel-head"><h2>Basics</h2>' +
       '<span class="badge">' + esc(entryId(entry)) + '</span></div><div class="form-grid" id="id-grid"></div>';
     body.appendChild(wrap);
     var grid = qs('#id-grid', wrap);
@@ -2637,7 +2638,7 @@
   function renderAssetsTab(body, entry, kind) {
     var wrap = document.createElement('div');
     wrap.className = 'panel';
-    wrap.innerHTML = '<div class="panel-head"><h2>Assets</h2><span class="badge">' + esc(KINDS[kind].label) + '</span></div>' +
+    wrap.innerHTML = '<div class="panel-head"><h2>Files</h2><span class="badge">' + esc(KINDS[kind].label) + '</span></div>' +
       '<p class="muted small">Files are copied into the Resource Pack at build time. ' +
       'Bedrock requires lowercase file names inside packs — names are normalised automatically.</p>' +
       '<div class="asset-grid" id="asset-grid"></div>';
@@ -2843,7 +2844,7 @@
     var wrap = document.createElement('div');
     wrap.className = 'panel';
     var names = Object.keys(entry.groups || {});
-    wrap.innerHTML = '<div class="panel-head"><h2>Component groups</h2>' +
+    wrap.innerHTML = '<div class="panel-head"><h2>Variants</h2>' +
       '<span class="badge">' + names.length + ' groups</span></div>' +
       '<p class="muted small">Groups hold components that can be added and removed at runtime by events. ' +
       'Reference them from the <b>Events</b> tab, e.g. <code>minecraft:entity_spawned</code>.</p>' +
@@ -2946,7 +2947,7 @@
     var wrap = document.createElement('div');
     wrap.className = 'panel';
     var names = Object.keys(entry.events || {});
-    wrap.innerHTML = '<div class="panel-head"><h2>Events</h2><span class="badge">' + names.length + ' events</span></div>' +
+    wrap.innerHTML = '<div class="panel-head"><h2>Reactions</h2><span class="badge">' + names.length + ' reaction' + (names.length === 1 ? '' : 's') + '</span></div>' +
       '<p class="muted small">Events add or remove component groups. Vanilla events such as ' +
       '<code>minecraft:entity_spawned</code> can be overridden to customise your mob.</p>' +
       '<div id="event-list" class="comp-list"></div>' +
@@ -3044,7 +3045,7 @@
   function renderCustomTab(body, entry, kind) {
     var wrap = document.createElement('div');
     wrap.className = 'panel';
-    wrap.innerHTML = '<div class="panel-head"><h2>Custom components</h2>' +
+    wrap.innerHTML = '<div class="panel-head"><h2>Raw JSON components</h2>' +
       '<span class="badge">' + (entry.custom || []).length + '</span></div>' +
       '<p class="muted small">Anything the form builder does not cover: paste a component id and its raw JSON value. ' +
       'It is merged into the generated file exactly as written.</p>' +
