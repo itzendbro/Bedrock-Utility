@@ -92,19 +92,21 @@ await step('boots and hides the loading screen', async () => {
   assert.equal(id('view-home').hidden, false);
 });
 
-await step('home page renders the feature grid and file legend', async () => {
-  assert.ok(id('feature-grid').children.length >= 4);
-  assert.ok(id('tree-legend').children.length >= 4);
-  assert.equal(id('recent-panel').hidden, true);
+await step('the homepage is an empty addon library, not a marketing page', async () => {
+  assert.equal(id('home-count').textContent, 'nothing saved yet');
+  assert.equal(qa('.addon-row').length, 0, 'library should start empty');
+  assert.match(id('addon-list').textContent, /No addons yet/);
+  // the removed marketing sections must not come back
+  assert.equal(id('feature-grid'), null);
+  assert.equal(id('tree-legend'), null);
+  assert.equal(id('recent-panel'), null);
+  assert.ok(!q('.launch'), 'old launcher markup still present');
+  assert.ok(!q('.step'), 'old "how it works" markup still present');
 });
 
-await step('the Ore UI shell carries the toolbox logo and plain-language steps', async () => {
+await step('the Ore UI shell still carries the toolbox logo', async () => {
   assert.equal(q('.brand-mark').textContent, '\u{1F9F0}', 'brand mark is not the toolbox emoji');
-  const steps = id('feature-grid').children;
-  assert.equal(steps.length, 4);
-  assert.equal(steps[0].querySelector('.step-n').textContent, '01');
-  assert.match(id('tree-legend').textContent, /Tells Minecraft the pack exists/);
-  assert.match(q('.lede').textContent, /\.mcaddon/);
+  assert.ok(id('btn-create-new').textContent.includes('Create new addon'));
 });
 
 await step('sidebar shows the empty state', async () => {
@@ -116,14 +118,6 @@ await step('the status bar reports the engine version', async () => {
   assert.equal(id('sb-format').textContent, '—');
   assert.equal(id('sb-objects').textContent, 'no project');
   assert.equal(id('engine-chip').textContent, '1.21.10+');
-});
-
-await step('homepage renders numbered steps and a spec list, not icon tiles', async () => {
-  const steps = id('feature-grid').children;
-  assert.equal(steps.length, 4);
-  assert.ok(steps[0].querySelector('.step-n'), 'no step number');
-  assert.ok(id('tree-legend').children.length >= 4);
-  assert.ok(!id('feature-grid').querySelector('.feature'), 'old icon-tile markup still present');
 });
 
 /* ---- create a project through the real modal ---- */
@@ -160,16 +154,23 @@ await step('filling the wizard creates the project', async () => {
   assert.ok(id('sb-objects').textContent.includes('voidpack'), 'status bar did not update');
 });
 
-await step('dashboard shows stats, cards and validation', async () => {
+await step('the dashboard lists content and offers Add new / Delete', async () => {
   assert.ok(id('dash-stats').children.length === 5);
-  assert.equal(id('card-grid').children.length, 4);
+  assert.equal(qa('#content-grid .panel').length, 4, 'one panel per content type');
+  assert.equal(qa('#content-grid .entry-row').length, 0, 'nothing has been added yet');
+  assert.match(q('#content-grid').textContent, /No mobs yet/);
   assert.ok(id('validation').children.length >= 1);
   assert.ok(id('filetree').children.length > 0, 'file tree empty');
+  assert.ok(!q('#content-grid .card'), 'old hub-card markup still present');
 });
 
 /* ---- add an entity ---- */
-await step('"New entity" opens the editor on the identity tab', async () => {
-  q('[data-add="entity"]').click();
+await step('the "Add new" picker asks what to create, then opens the editor', async () => {
+  id('btn-add-new').click();
+  assert.ok(q('.modal'), 'picker did not open');
+  const picks = qa('.pick').map((n) => n.getAttribute('data-pick'));
+  assert.deepEqual(picks, ['entity', 'item', 'block', 'sound']);
+  q('[data-pick="entity"]').click();
   assert.equal(id('view-editor').hidden, false);
   assert.equal(BU.state.entities.length, 1);
   assert.equal(qa('#ed-tabs .ed-tab').length, 7);
@@ -314,6 +315,15 @@ await step('adding a sound works end to end', async () => {
 });
 
 /* ---- dashboard + export ---- */
+await step('the dashboard lists every entry with Edit and Delete', async () => {
+  id('btn-ed-back').click();
+  assert.equal(id('view-dashboard').hidden, false);
+  assert.equal(qa('#content-grid .entry-row').length, 4, 'one row per entry');
+  assert.equal(qa('#content-grid [data-open]').length, 4, 'every row needs an Edit button');
+  assert.equal(qa('#content-grid [data-drop]').length, 4, 'every row needs a Delete button');
+  assert.ok(qa('#content-grid .entry-row')[0].querySelector('.e-id').textContent.includes('voidpack:'));
+});
+
 await step('dashboard reflects all four content types', async () => {
   id('btn-ed-back').click();
   assert.equal(id('view-dashboard').hidden, false);
@@ -350,11 +360,42 @@ await step('exporting a single .mcpack strips the folder', async () => {
   assert.ok(!Object.keys(zip.files).some((n) => n.indexOf('Void Wolves RP/') === 0));
 });
 
+await step('going back to the homepage lists the addon with Edit and Delete', async () => {
+  id('btn-close-addon').click();
+  assert.equal(id('view-home').hidden, false, 'should be back on the library');
+  assert.equal(qa('.addon-row').length, 1);
+  assert.ok(q('.addon-row .a-name').textContent.includes('Void Wolves'));
+  const tags = qa('.addon-row .tag').map((n) => n.textContent);
+  assert.deepEqual(tags, ['1 entity', '1 item', '1 block', '1 sound']);
+  assert.equal(qa('.addon-row [data-edit]').length, 1, 'needs an Edit button');
+  assert.equal(qa('.addon-row [data-del]').length, 1, 'needs a Delete button');
+  assert.equal(id('home-count').textContent, '1 addon saved in this browser');
+});
+
+await step('Edit re-opens that addon on its dashboard', async () => {
+  q('.addon-row [data-edit]').click();
+  assert.equal(id('view-dashboard').hidden, false);
+  assert.equal(id('dash-title').textContent, 'Void Wolves');
+  assert.equal(BU.state.entities.length, 1);
+});
+
 await step('state survives a reload (localStorage)', async () => {
-  assert.ok(store.has('bedrock-utility.project.v1'), 'nothing persisted');
-  const saved = JSON.parse(store.get('bedrock-utility.project.v1'));
-  assert.equal(saved.entities.length, 1);
-  assert.equal(saved.meta.name, 'Void Wolves');
+  assert.ok(store.has('bedrock-utility.addons.v1'), 'nothing persisted');
+  const saved = JSON.parse(store.get('bedrock-utility.addons.v1'));
+  assert.equal(saved.length, 1, 'the library should hold exactly one addon');
+  assert.equal(saved[0].entities.length, 1);
+  assert.equal(saved[0].meta.name, 'Void Wolves');
+});
+
+await step('Delete removes the addon from the library', async () => {
+  id('btn-close-addon').click();
+  q('.addon-row [data-del]').click();
+  assert.ok(q('.modal'), 'delete did not ask for confirmation');
+  q('.modal [data-yes]').click();
+  await tick();
+  assert.equal(qa('.addon-row').length, 0, 'addon was not deleted');
+  assert.equal(id('home-count').textContent, 'nothing saved yet');
+  assert.equal(BU.state.meta, null, 'state was not cleared');
 });
 
 console.log(log.join('\n'));

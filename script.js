@@ -220,13 +220,20 @@
     sound: { label: 'Sound', plural: 'Sounds', bp: '', rp: 'sounds', color: '#4ade80', icon: 'sound' }
   };
 
-  var STORAGE_KEY = 'bedrock-utility.project.v1';
+  var REGISTRY_KEY = 'bedrock-utility.addons.v1';
+  var LEGACY_KEY = 'bedrock-utility.project.v1';
 
   /* =================================================================
-     3. PROJECT STATE + PERSISTENCE
+     3. ADDON LIBRARY + PERSISTENCE
+     -----------------------------------------------------------------
+     The browser holds a library of addons, not just one. Every addon is
+     a full snapshot { id, meta, entities, items, blocks, sounds }. The
+     one you are editing is loaded into `state`; everything else stays
+     in the registry until you open it.
      ================================================================= */
 
   var state = {
+    id: null,
     meta: null,
     entities: [],
     items: [],
@@ -234,9 +241,58 @@
     sounds: []
   };
 
+  function newAddonId() { return 'addon-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6); }
+
+  function loadRegistry() {
+    if (typeof localStorage === 'undefined') return [];
+    var list = [];
+    try {
+      var raw = localStorage.getItem(REGISTRY_KEY);
+      list = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(list)) list = [];
+    } catch (err) { list = []; }
+    if (!list.length) list = migrateLegacy();
+    return list;
+  }
+
+  /** One-time move from the old single-project key. */
+  function migrateLegacy() {
+    if (typeof localStorage === 'undefined') return [];
+    try {
+      var raw = localStorage.getItem(LEGACY_KEY);
+      if (!raw) return [];
+      var d = JSON.parse(raw);
+      if (!d || !d.meta || !d.meta.name) return [];
+      var one = [normalizeAddon({
+        id: newAddonId(), meta: d.meta,
+        entities: d.entities || [], items: d.items || [], blocks: d.blocks || [], sounds: d.sounds || []
+      })];
+      try { localStorage.setItem(REGISTRY_KEY, JSON.stringify(one)); } catch (e2) { /* ignore */ }
+      return one;
+    } catch (err) { return []; }
+  }
+
+  function normalizeAddon(a) {
+    a = a || {};
+    return {
+      id: a.id || newAddonId(),
+      meta: a.meta || null,
+      entities: a.entities || [],
+      items: a.items || [],
+      blocks: a.blocks || [],
+      sounds: a.sounds || []
+    };
+  }
+
+  function saveRegistry(list) {
+    if (typeof localStorage === 'undefined') return;
+    try { localStorage.setItem(REGISTRY_KEY, JSON.stringify(list)); }
+    catch (err) { /* quota — caller retries lighter */ }
+  }
+
   var listeners = [];
   function onChange() {
-    state.meta.updatedAt = new Date().toISOString();
+    if (state.meta) state.meta.updatedAt = new Date().toISOString();
     persist();
     for (var i = 0; i < listeners.length; i += 1) listeners[i]();
   }
@@ -364,43 +420,104 @@
 
   /* ---------------------------- persistence ---------------------------- */
 
+  /** Drop the heavy base64 payloads so a snapshot fits the 5 MB quota. */
+  function stripAssets(a) {
+    var light = clone(a);
+    ['entities', 'items', 'blocks'].forEach(function (k) {
+      (light[k] || []).forEach(function (e) {
+        if (e.texture) delete e.texture.data;
+        if (e.assets) {
+          ['model', 'texture', 'animation'].forEach(function (x) { if (e.assets[x]) delete e.assets[x].data; });
+        }
+        (e.files || []).forEach(function (f) { delete f.data; });
+      });
+    });
+    return light;
+  }
+
   function persist() {
     if (typeof localStorage === 'undefined') return;
-    var payload = clone(state);
+    if (!state.meta) return;
+    var list = loadRegistry();
+    var mine = normalizeAddon(clone(state));
+    var at = -1;
+    for (var i = 0; i < list.length; i += 1) if (list[i].id === mine.id) { at = i; break; }
+    if (at >= 0) list[at] = mine; else list.push(mine);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      saveRegistry(list);
     } catch (err) {
       // Most likely the 5 MB quota: retry without the heavy base64 assets.
       try {
-        var light = clone(state);
-        ['entities', 'items', 'blocks'].forEach(function (k) {
-          (light[k] || []).forEach(function (e) {
-            if (e.texture) delete e.texture.data;
-            if (e.assets) {
-              ['model', 'texture', 'animation'].forEach(function (a) { if (e.assets[a]) delete e.assets[a].data; });
-            }
-            (e.files || []).forEach(function (f) { delete f.data; });
-          });
-        });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(light));
+        var light = stripAssets(mine);
+        if (at >= 0) list[at] = light; else list[list.length - 1] = light;
+        saveRegistry(list);
       } catch (err2) { /* give up silently */ }
     }
   }
 
+  /** Load the library into memory. Nothing is opened yet. */
   function restore() {
     if (typeof localStorage === 'undefined') return false;
-    try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return false;
-      var data = JSON.parse(raw);
-      if (!data || !data.meta || !data.meta.name) return false;
-      state.meta = Object.assign(defaultMeta(), data.meta);
-      state.entities = data.entities || [];
-      state.items = data.items || [];
-      state.blocks = data.blocks || [];
-      state.sounds = data.sounds || [];
-      return true;
-    } catch (err) { return false; }
+    return loadRegistry().length > 0;
+  }
+
+  /** Put one stored addon into `state` so it can be edited. */
+  function openAddon(id) {
+    var list = loadRegistry();
+    var found = null;
+    for (var i = 0; i < list.length; i += 1) if (list[i].id === id) { found = list[i]; break; }
+    if (!found) return false;
+    var a = normalizeAddon(found);
+    state.id = a.id;
+    state.meta = Object.assign(defaultMeta(), a.meta);
+    state.entities = a.entities;
+    state.items = a.items;
+    state.blocks = a.blocks;
+    state.sounds = a.sounds;
+    return true;
+  }
+
+  /** Close the addon being edited without deleting it. */
+  function closeAddon() {
+    state.id = null;
+    state.meta = null;
+    state.entities = [];
+    state.items = [];
+    state.blocks = [];
+    state.sounds = [];
+  }
+
+  function deleteAddon(id) {
+    var list = loadRegistry().filter(function (a) { return a.id !== id; });
+    saveRegistry(list);
+    if (state.id === id) closeAddon();
+    return list;
+  }
+
+  function addonSummary(a) {
+    var counts = [a.entities.length, a.items.length, a.blocks.length, a.sounds.length];
+    return {
+      entities: counts[0], items: counts[1], blocks: counts[2], sounds: counts[3],
+      total: counts[0] + counts[1] + counts[2] + counts[3]
+    };
+  }
+
+  /**
+   * Point `state` at an addon we may write into. The current one is
+   * reused while it is still empty; otherwise a fresh one is started so
+   * importing never overwrites work the user already did.
+   */
+  function ensureAddonSlot() {
+    var hasWork = !!(state.entities.length || state.items.length || state.blocks.length || state.sounds.length);
+    if (!state.meta || hasWork || state.meta.imported) {
+      state.id = newAddonId();
+      state.meta = defaultMeta();
+      state.entities = [];
+      state.items = [];
+      state.blocks = [];
+      state.sounds = [];
+    }
+    return state;
   }
 
   function resetProject() {
@@ -1895,7 +2012,12 @@
       v.hidden = !(id === 'view-' + route.view);
     });
 
-    if (!hasProject() && route.view !== 'home') { route.view = 'home'; el('view-home').hidden = false; el('view-dashboard').hidden = true; }
+    if (!hasProject() && route.view !== 'home') {
+      route.view = 'home';
+      el('view-home').hidden = false;
+      el('view-dashboard').hidden = true;
+      el('view-editor').hidden = true;
+    }
 
     renderTopbar();
     renderSidebar();
@@ -1976,49 +2098,93 @@
       });
     });
     el('save-label').textContent = hasProject() ? 'saved to this browser' : 'nothing saved yet';
+    var closeBtn = el('btn-close-addon');
+    if (closeBtn) closeBtn.disabled = !hasProject();
   }
 
   /* ------------------------------- home ------------------------------- */
+  /* The homepage is the addon library: every addon you have made, with an
+     Edit button and a Delete button. Nothing else. */
 
-  var FEATURES = [
-    { title: 'Name your pack', text: 'A name, your name and what the addon does. Four UUIDs are generated for you.' },
-    { title: 'Add your content', text: 'Mobs, items, blocks and sounds — one simple form at a time.' },
-    { title: 'Flip the switches', text: '113 real Minecraft components. Turn one on and only the settings it needs appear.' },
-    { title: 'Build it', text: 'The JSON is checked for mistakes, then zipped into a .mcaddon ready to open on your phone.' }
-  ];
+  function sortAddons(list) {
+    return list.slice().sort(function (a, b) {
+      var x = (a.meta && a.meta.updatedAt) || '';
+      var y = (b.meta && b.meta.updatedAt) || '';
+      return x < y ? 1 : x > y ? -1 : 0;
+    });
+  }
 
-  var LEGEND = [
-    { t: 'manifest.json', d: 'Tells Minecraft the pack exists and which pack loads first.' },
-    { t: 'entities/*.se.json', d: 'How your mob acts: health, movement, what it attacks.' },
-    { t: 'entity/*.entity.json', d: 'How your mob looks: model, texture, animations, spawn egg.' },
-    { t: 'items/*.json', d: 'Your item\u2019s icon, where it sits in the menu, and what it does.' },
-    { t: 'blocks/*.json', d: 'Your block\u2019s textures, hardness and light.' },
-    { t: 'sounds/sound_definitions.json', d: 'Your sound events, so mobs and animations can play them.' }
-  ];
+  function addonBits(a) {
+    var s = addonSummary(a);
+    var out = [];
+    if (s.entities) out.push(s.entities + (s.entities === 1 ? ' entity' : ' entities'));
+    if (s.items) out.push(s.items + (s.items === 1 ? ' item' : ' items'));
+    if (s.blocks) out.push(s.blocks + (s.blocks === 1 ? ' block' : ' blocks'));
+    if (s.sounds) out.push(s.sounds + (s.sounds === 1 ? ' sound' : ' sounds'));
+    return out.length ? out : ['empty'];
+  }
+
+  function addonMetaLine(a) {
+    var m = a.meta || {};
+    var bits = [];
+    if (m.author) bits.push('by ' + m.author);
+    if (m.namespace) bits.push(slug(m.namespace));
+    if (m.version) bits.push('v' + m.version.join('.'));
+    if (m.formatVersion) bits.push('Minecraft ' + m.formatVersion + '+');
+    return bits.join(' · ');
+  }
 
   function renderHome() {
-    el('feature-grid').innerHTML = FEATURES.map(function (f, i) {
-      return '<div class="step"><span class="step-n">0' + (i + 1) + '</span><h3>' + esc(f.title) + '</h3><p>' + esc(f.text) + '</p></div>';
-    }).join('');
-    el('tree-legend').innerHTML = LEGEND.map(function (l) {
-      return '<div class="legend-item"><code>' + esc(l.t) + '</code><span>' + esc(l.d) + '</span></div>';
+    var list = sortAddons(loadRegistry());
+    el('home-count').textContent = list.length
+      ? list.length + (list.length === 1 ? ' addon' : ' addons') + ' saved in this browser'
+      : 'nothing saved yet';
+
+    var box = el('addon-list');
+    if (!list.length) {
+      box.innerHTML = '<div class="empty"><b>No addons yet</b>' +
+        'Press <b>Create new addon</b> to make your first one. It is stored in this browser only.</div>';
+      return;
+    }
+
+    box.innerHTML = list.map(function (a) {
+      var m = a.meta || {};
+      return '<article class="addon-row" data-addon="' + esc(a.id) + '">' +
+        '<span class="a-ico" aria-hidden="true">🧰</span>' +
+        '<div class="a-main">' +
+          '<div class="a-name">' + esc(m.name || 'Untitled addon') + '</div>' +
+          '<div class="a-meta">' + esc(addonMetaLine(a)) + '</div>' +
+          '<div class="a-tags">' + addonBits(a).map(function (t) {
+            return '<span class="tag">' + esc(t) + '</span>';
+          }).join('') + '</div>' +
+        '</div>' +
+        '<div class="a-actions">' +
+          '<button class="btn primary" data-edit="' + esc(a.id) + '">Edit</button>' +
+          '<button class="btn danger" data-del="' + esc(a.id) + '">Delete</button>' +
+        '</div>' +
+      '</article>';
     }).join('');
 
-    var recent = el('recent-panel');
-    if (hasProject()) {
-      recent.hidden = false;
-      var counts = state.entities.length + state.items.length + state.blocks.length + state.sounds.length;
-      el('recent-list').innerHTML =
-        '<div class="entry-row"><div class="e-ico">' + icon('cube') + '</div>' +
-        '<div class="e-main"><div class="e-name">' + esc(state.meta.name) + '</div>' +
-        '<div class="e-id">' + esc(namespace()) + ' &middot; ' + counts + (counts === 1 ? ' thing' : ' things') + ' &middot; v' + (state.meta.version || []).join('.') + '</div></div>' +
-        '<div class="e-actions"><button class="btn primary tiny" data-open-dash>Open dashboard</button></div></div>';
-      qs('[data-open-dash]', el('recent-list')).addEventListener('click', function () { navigate('dashboard'); });
-      el('home-hint').textContent = 'Your last project is still here — it is stored in this browser only.';
-    } else {
-      recent.hidden = true;
-      el('home-hint').textContent = 'Everything runs locally in your browser — no uploads, no account.';
-    }
+    qsa('[data-edit]', box).forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (openAddon(b.getAttribute('data-edit'))) navigate('dashboard');
+        else toast('err', 'Could not open that addon');
+      });
+    });
+    qsa('[data-del]', box).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-del');
+        var a = loadRegistry().filter(function (x) { return x.id === id; })[0];
+        var name = (a && a.meta && a.meta.name) || 'this addon';
+        confirmDialog('Delete addon', 'Delete "' + name + '" and everything inside it? This cannot be undone.', 'Delete')
+          .then(function (ok) {
+            if (!ok) return;
+            deleteAddon(id);
+            render();
+            toast('ok', 'Addon deleted', name);
+          });
+      });
+    });
   }
 
   /* ----------------------------- dashboard ----------------------------- */
@@ -2027,7 +2193,8 @@
     if (!hasProject()) return;
     var m = state.meta;
     el('dash-title').textContent = m.name;
-    el('dash-meta').textContent = 'by ' + (m.author || 'Unknown') + ' · namespace ' + namespace() +
+    el('dash-meta').textContent = 'by ' + (m.author || 'Unknown') + ' · ' + namespace() +
+      ' · v' + (m.version || []).join('.') + ' · Minecraft ' + m.formatVersion + '+';
       ' · v' + (m.version || []).join('.') + ' · format_version ' + m.formatVersion + ' · min_engine_version ' + (m.minEngineVersion || []).join('.');
 
     var stats = [
@@ -2041,31 +2208,57 @@
       return '<div class="stat"><div class="k">' + esc(s.k) + '</div><div class="v">' + s.v + '</div></div>';
     }).join('');
 
-    var cards = [
-      { kind: 'entity', title: 'Entities', sub: 'Mobs & NPCs', text: 'Models, textures, animations, component groups and spawn eggs.', btn: 'New entity' },
-      { kind: 'item', title: 'Items', sub: 'Tools, food, gear', text: 'Icons, categories, durability, food, enchantments and cooldowns.', btn: 'New item' },
-      { kind: 'block', title: 'Blocks', sub: 'Custom blocks', text: 'Cube or custom geometry with per-face textures and block components.', btn: 'New block' },
-      { kind: 'sound', title: 'Sounds', sub: 'Sound events', text: 'Register .ogg files as sound events for entities and animations.', btn: 'New sound' }
+    var kinds = [
+      { kind: 'entity', title: 'Entities', empty: 'No mobs yet' },
+      { kind: 'item', title: 'Items', empty: 'No items yet' },
+      { kind: 'block', title: 'Blocks', empty: 'No blocks yet' },
+      { kind: 'sound', title: 'Sounds', empty: 'No sounds yet' }
     ];
-    el('card-grid').innerHTML = cards.map(function (c) {
+    el('content-grid').innerHTML = kinds.map(function (c) {
       var list = getList(c.kind);
-      return '<article class="card" data-card="' + c.kind + '" style="--c:' + KINDS[c.kind].color + '" tabindex="0">' +
-        '<div class="c-top"><span class="c-ico">' + icon(KINDS[c.kind].icon) + '</span>' +
-        '<div><h3>' + esc(c.title) + '</h3><div class="c-sub">' + esc(c.sub) + '</div></div></div>' +
-        '<p>' + esc(c.text) + '</p>' +
-        '<div class="c-foot"><span class="c-count">' + list.length + ' defined</span>' +
-        '<button class="btn tiny primary c-add" data-add="' + c.kind + '">' + icon('plus') + esc(c.btn) + '</button></div></article>';
+      var rows = list.length
+        ? list.map(function (e) {
+            return '<div class="entry-row">' +
+              '<div class="e-ico">' + icon(KINDS[c.kind].icon) + '</div>' +
+              '<div class="e-main"><div class="e-name">' + esc(e.name) + '</div>' +
+              '<div class="e-id">' + esc(entryId(e)) + '</div></div>' +
+              '<div class="e-actions">' +
+                '<button class="btn tiny outline" data-open="' + esc(c.kind + ':' + e.uid) + '">Edit</button>' +
+                '<button class="btn tiny danger" data-drop="' + esc(c.kind + ':' + e.uid) + '" title="Delete">' + icon('trash') + '</button>' +
+              '</div></div>';
+          }).join('')
+        : '<div class="panel-empty">' + esc(c.empty) + '</div>';
+      return '<section class="panel">' +
+        '<div class="panel-head"><h2>' + esc(c.title) + '</h2>' +
+        '<span class="badge">' + list.length + '</span></div>' +
+        '<div class="entry-list">' + rows + '</div>' +
+        '<div class="btn-row"><button class="btn ghost full" data-add="' + esc(c.kind) + '">' + icon('plus') + 'Add ' + esc(KINDS[c.kind].label.toLowerCase()) + '</button></div>' +
+        '</section>';
     }).join('');
-    qsa('[data-card]').forEach(function (c) {
-      c.addEventListener('click', function (e) {
-        if (e.target.closest('[data-add]')) return;
-        navigate('editor', { kind: c.getAttribute('data-card'), uid: null });
+
+    qsa('[data-open]', el('content-grid')).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var parts = b.getAttribute('data-open').split(':');
+        navigate('editor', { kind: parts[0], uid: parts[1] });
       });
     });
-    qsa('[data-add]').forEach(function (b) {
-      b.addEventListener('click', function (e) {
-        e.stopPropagation();
-        createEntry(b.getAttribute('data-add'));
+    qsa('[data-add]', el('content-grid')).forEach(function (b) {
+      b.addEventListener('click', function () { createEntry(b.getAttribute('data-add')); });
+    });
+    qsa('[data-drop]', el('content-grid')).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var parts = b.getAttribute('data-drop').split(':');
+        var kind = parts[0], uidToFind = parts[1];
+        var e = findEntry(kind, uidToFind);
+        if (!e) return;
+        confirmDialog('Delete ' + KINDS[kind].label.toLowerCase(), 'Delete "' + e.name + '"?', 'Delete').then(function (ok) {
+          if (!ok) return;
+          var list = getList(kind);
+          list.splice(list.indexOf(e), 1);
+          onChange();
+          render();
+          toast('ok', 'Deleted', e.name);
+        });
       });
     });
 
@@ -2147,6 +2340,7 @@
       { key: 'version', label: 'Addon version', value: '1.0.0', help: 'Bump this whenever you release an update.' }
     ], 'Create addon').then(function (res) {
       if (!res) return;
+      ensureAddonSlot();
       state.meta = defaultMeta();
       state.meta.name = (res.name || 'My Addon').trim();
       state.meta.author = (res.author || '').trim();
@@ -2157,10 +2351,9 @@
       while (vparts.length < 3) vparts.push(0);
       state.meta.version = vparts.slice(0, 3);
       state.meta.minEngineVersion = state.meta.formatVersion.split('.').map(function (n) { return parseInt(n, 10) || 0; });
-      state.entities = []; state.items = []; state.blocks = []; state.sounds = [];
       onChange();
       navigate('dashboard');
-      toast('ok', 'Addon created', state.meta.name + ' is ready — add an entity to get started.');
+      toast('ok', 'Addon created', state.meta.name + ' is ready — press "Add new" to add your first mob, item, block or sound.');
     });
   }
 
@@ -2339,6 +2532,49 @@
   };
 
   var editorUi = { compSearch: '', compGroup: 'All', preview: 'bp', entryUid: null };
+
+  /** Ask which kind of thing the user wants to add, then open its editor. */
+  function openAddPicker() {
+    if (!hasProject()) { toast('warn', 'No addon open', 'Create or open an addon first.'); return; }
+    var choices = [
+      { kind: 'entity', label: 'Entity', desc: 'A mob with a model, texture, animations and behaviour.' },
+      { kind: 'item', label: 'Item', desc: 'A tool, a food, or a piece of gear.' },
+      { kind: 'block', label: 'Block', desc: 'A new block with its own textures and physics.' },
+      { kind: 'sound', label: 'Sound', desc: 'A sound event your mobs and animations can play.' }
+    ];
+    var body = '<div class="pick-grid">' + choices.map(function (c) {
+      return '<button class="pick" data-pick="' + c.kind + '">' +
+        '<span class="pick-ico">' + icon(KINDS[c.kind].icon) + '</span>' +
+        '<span class="pick-text"><b>' + esc(c.label) + '</b><small>' + esc(c.desc) + '</small></span>' +
+        '<span class="pick-go">' + icon('plus') + '</span></button>';
+    }).join('') + '</div>';
+    var m = openModal({
+      title: 'What do you want to add?',
+      body: body,
+      actions: '<button class="btn ghost" data-no>Cancel</button>'
+    });
+    qs('[data-no]', m.root).addEventListener('click', function () { m.close(); });
+    qsa('[data-pick]', m.root).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var kind = b.getAttribute('data-pick');
+        m.close();
+        createEntry(kind);
+      });
+    });
+  }
+
+  function deleteCurrentAddon() {
+    if (!hasProject()) return;
+    var name = state.meta.name;
+    confirmDialog('Delete addon',
+      'Delete "' + name + '" and every entity, item, block and sound inside it? This cannot be undone.',
+      'Delete addon').then(function (ok) {
+      if (!ok) return;
+      deleteAddon(state.id);
+      navigate('home');
+      toast('ok', 'Addon deleted', name);
+    });
+  }
 
   function createEntry(kind) {
     var entry = kind === 'entity' ? newEntity() : kind === 'item' ? newItem() : kind === 'block' ? newBlock() : newSound();
@@ -3173,14 +3409,12 @@
     el('btn-import-home').addEventListener('click', function () { importAddon(); });
     el('btn-import').addEventListener('click', function () { importAddon(); });
     el('btn-build').addEventListener('click', function () { doBuild(); });
-    el('btn-reset').addEventListener('click', function () {
-      confirmDialog('Reset project', 'Delete the current project from this browser and start over?', 'Reset').then(function (ok) {
-        if (!ok) return;
-        resetProject();
-        navigate('home');
-        toast('ok', 'Project reset');
-      });
+    el('btn-close-addon').addEventListener('click', function () {
+      closeAddon();
+      navigate('home');
     });
+    el('btn-add-new').addEventListener('click', function () { openAddPicker(); });
+    el('btn-delete-addon').addEventListener('click', function () { deleteCurrentAddon(); });
     el('btn-ed-back').addEventListener('click', function () { navigate('dashboard'); });
     el('btn-ed-duplicate').addEventListener('click', function () {
       var e = currentEntry();
@@ -3255,6 +3489,7 @@
     var bpRoot = null;
     var rpRoot = null;
     var summary = { entities: 0, items: 0, blocks: 0, sounds: 0 };
+    ensureAddonSlot();
 
     function readText(path) {
       var f = zip.file(path);

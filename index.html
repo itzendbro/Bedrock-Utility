@@ -65,7 +65,7 @@
           <span class="dot" id="save-dot"></span>
           <span id="save-label">Autosave on</span>
         </div>
-        <button class="btn tiny ghost full" id="btn-reset" title="Delete the current project from this browser">New / Reset project</button>
+        <button class="btn tiny ghost full" id="btn-close-addon" title="Close this addon and go back to your list">Back to all addons</button>
       </div>
     </aside>
 
@@ -73,51 +73,26 @@
     <main class="main" id="main">
 
       <!-- ------------------------ HOME ------------------------ -->
+      <!-- The library: every addon you have made, with Edit and Delete. -->
       <section class="view" id="view-home" data-view="home">
-        <div class="launch">
-          <div class="panel launch-main">
-            <div class="panel-head">
-              <h2>Start a new addon</h2>
-              <span class="badge">runs in your browser</span>
-            </div>
-            <p class="lede">
-              Fill in a few forms and Bedrock Utility writes a real Behavior Pack and Resource Pack for
-              MCPE&nbsp;1.21.10 and newer. Manifests, mobs, items, blocks and sounds are generated as valid
-              Bedrock JSON, then zipped into a <code>.mcaddon</code> you can open on your phone or on Windows.
-            </p>
-            <div class="launch-cta">
-              <button class="btn primary xl" id="btn-create-new">
-                <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                Create New Addon
-              </button>
-              <button class="btn outline xl" id="btn-import-home">
-                <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-                Open an existing addon
-              </button>
-            </div>
-            <p class="hint" id="home-hint">Everything runs locally in your browser &mdash; no uploads, no account.</p>
+        <div class="page-head">
+          <div>
+            <h1>Your addons</h1>
+            <p class="sub" id="home-count">nothing saved yet</p>
           </div>
-
-          <div class="panel launch-side">
-            <div class="panel-head">
-              <h2>What you get</h2>
-              <span class="badge">1.21.10+</span>
-            </div>
-            <div class="tree-legend" id="tree-legend"></div>
+          <div class="page-head-actions">
+            <button class="btn outline" id="btn-import-home">
+              <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M12 16V4m0 0L8 8m4-4 4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+              Open a file
+            </button>
+            <button class="btn primary" id="btn-create-new">
+              <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              Create new addon
+            </button>
           </div>
         </div>
 
-        <section class="panel" id="recent-panel" hidden>
-          <div class="panel-head">
-            <h2>Pick up where you left off</h2>
-          </div>
-          <div id="recent-list" class="recent-list"></div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-head"><h2>How it works</h2></div>
-          <div class="feature-grid" id="feature-grid"></div>
-        </section>
+        <div class="addon-list" id="addon-list"></div>
       </section>
 
       <!-- ------------------------ DASHBOARD ------------------------ -->
@@ -129,13 +104,21 @@
           </div>
           <div class="page-head-actions">
             <button class="btn outline" id="btn-edit-meta">Pack details</button>
+            <button class="btn primary" id="btn-add-new">
+              <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              Add new
+            </button>
+            <button class="btn danger" id="btn-delete-addon">
+              <svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>
+              Delete
+            </button>
             <button class="btn primary" id="btn-build-2">Build Addon</button>
           </div>
         </div>
 
         <div class="stat-row" id="dash-stats"></div>
 
-        <div class="card-grid" id="card-grid"></div>
+        <div class="content-grid" id="content-grid"></div>
 
         <div class="dash-cols">
           <section class="panel">

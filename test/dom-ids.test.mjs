@@ -19,9 +19,9 @@ const dynamic = new Set([
   'id-grid', 'opt-grid', 'asset-grid', 'spawn-grid', 'comp-search', 'comp-chips', 'comp-list',
   'add-custom-comp', 'group-list', 'add-group', 'event-list', 'add-event', 'custom-list', 'add-custom',
   'entries', 'list-add', 'gl-', 'side-project', 'side-nav', 'save-label', 'save-dot', 'crumbs',
-  'engine-chip', 'btn-build', 'btn-build-2', 'dash-title', 'dash-meta', 'dash-stats', 'card-grid',
-  'validation', 'validation-badge', 'filetree', 'tree-count', 'feature-grid', 'tree-legend',
-  'recent-panel', 'recent-list', 'home-hint', 'ed-title', 'ed-sub', 'ed-tabs', 'ed-body',
+  'engine-chip', 'btn-build', 'btn-build-2', 'dash-title', 'dash-meta', 'dash-stats',
+  'validation', 'validation-badge', 'filetree', 'tree-count',
+  'ed-title', 'ed-sub', 'ed-tabs', 'ed-body',
   'preview-toggle', 'ed-preview', 'modal-root', 'toast-root', 'hidden-file', 'boot', 'app',
   'statusbar', 'sb-format', 'sb-engine', 'sb-objects', 'sb-save'
 ]);

@@ -11,13 +11,26 @@ sized for a thumb. Buttons keep the classic 2px Minecraft bevel. The app logo is
 toolbox emoji on a green tile.
 
 ```
-index.html      SPA shell (Homepage → Project Dashboard → Component Editor)
+index.html      SPA shell (Addon library → Addon dashboard → Component editor)
 style.css       Ore UI design system (Grid + Flexbox, no frameworks)
-script.js       state, component schemas, JSON generators, JSZip export, UI
+script.js       addon library, component schemas, JSON generators, JSZip export, UI
 vendor/         local fallback copy of JSZip (the page loads it from a CDN first)
 test/           Node test suites for the generators and the UI pipeline
 docs/           generated component reference + GitHub Pages hosting notes
 ```
+
+## How it flows
+
+1. **Your addons** — the homepage lists every addon saved in this browser, each with an
+   **Edit** and a **Delete** button, plus **Create new addon** to start another one.
+2. **Addon dashboard** — press **Edit** (or finish the wizard) to land here. It shows the
+   pack details, what is inside it, and three actions: **Add new**, **Delete**, and
+   **Build Addon**.
+3. **Add new** asks what you want to create — entity, item, block or sound — and opens
+   that editor.
+
+Everything is stored in `localStorage` under one key, so several addons can live side by
+side and nothing is ever uploaded.
 
 ## Quick start
 
