@@ -5,10 +5,16 @@ entirely in the browser. Fill in forms, toggle Minecraft components, and export 
 Behavior Pack + Resource Pack as a single `.mcaddon`.
 
 The interface is deliberately modelled on **Minecraft Pocket Edition's "Ore UI"** — the
-screens Bedrock players already know: a near-black canvas, a light app bar, soft rounded
-panels with a lighter header strip, Minecraft green as the single accent, and controls
-sized for a thumb. Buttons keep the classic 2px Minecraft bevel. The app logo is the
+screens Bedrock players already know: a near-black canvas, dark app bars pinned to the top
+and bottom of the screen, rounded panels with a lighter header strip and a faint block
+grain, Minecraft green as the single accent, and controls sized for a thumb. Buttons keep
+the classic Minecraft bevel. Headings, buttons, tabs and badges are set in a pixel face;
+prose and help text stay in a clean sans so they are easy to read. The app logo is the
 toolbox emoji on a green tile.
+
+On a phone the navigation drawer becomes a **bottom tab bar**, the way Minecraft's own
+screens do it — there is no hamburger menu to hunt for, and the toolbox in the top bar
+always takes you back to your list of addons.
 
 ```
 index.html      SPA shell (Addon library → Addon dashboard → Component editor)

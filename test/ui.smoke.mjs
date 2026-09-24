@@ -8,7 +8,8 @@
    Usage:  node test/ui.smoke.mjs
    ===================================================================== */
 
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
@@ -16,6 +17,7 @@ import { createRequire } from 'node:module';
 import { createDocument } from './minidom.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const tmpdir = os.tmpdir;
 const html = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 // --- browser globals the app expects -------------------------------
 const store = new Map();
@@ -53,6 +55,20 @@ globalThis.URL.createObjectURL = (blob) => {
 globalThis.URL.revokeObjectURL = () => {};
 const require = createRequire(import.meta.url);
 const BU = require(path.join(ROOT, 'script.js'));
+
+/**
+ * Re-run script.js against a brand-new document, the way a page reload
+ * would. A temp copy is used because Node caches CJS modules by path.
+ */
+function reload() {
+  const dir = mkdtempSync(path.join(tmpdir(), 'bu-reload-'));
+  const copy = path.join(dir, 'script.js');
+  writeFileSync(copy, readFileSync(path.join(ROOT, 'script.js')));
+  const doc = createDocument(html);
+  globalThis.document = doc;
+  require(copy);
+  return doc;
+}
 
 /* ------------------------------ helpers ------------------------------ */
 
@@ -109,6 +125,17 @@ await step('the Ore UI shell still carries the toolbox logo', async () => {
   assert.ok(id('btn-create-new').textContent.includes('Create new addon'));
 });
 
+await step('the hamburger menu is gone and the sidebar is the only navigation', async () => {
+  assert.equal(id('btn-menu'), null, 'the 3-line menu button is still in the markup');
+  assert.equal(document.querySelector('.icon-btn'), null, 'icon-button markup still present');
+  // the sidebar is a real <nav> with tab links, which is what the phone
+  // layout turns into a bottom tab bar
+  const links = qa('#side-nav .side-link');
+  assert.ok(links.length >= 1, 'the sidebar has no navigation links');
+  assert.ok(links.every((l) => l.getAttribute('data-go')), 'a nav link has no destination');
+  assert.equal(id('app').className.includes('has-project'), false, 'no project is open yet');
+});
+
 await step('sidebar shows the empty state', async () => {
   assert.ok(id('side-project').textContent.includes('No project'));
   assert.equal(id('btn-build').disabled, true);
@@ -152,6 +179,11 @@ await step('filling the wizard creates the project', async () => {
   assert.deepEqual(BU.state.meta.version, [1, 2, 0]);
   assert.equal(id('sb-format').textContent, '1.21.20');
   assert.ok(id('sb-objects').textContent.includes('voidpack'), 'status bar did not update');
+});
+
+await step('opening an addon marks the shell so phones can hide the Home tab', async () => {
+  assert.ok(id('app').className.includes('has-project'), 'the shell was not marked as having a project');
+  assert.equal(qa('#side-nav .side-link').length, 6, 'the sidebar should list Home, the dashboard and the four content types');
 });
 
 await step('the dashboard lists content and offers Add new / Delete', async () => {
@@ -363,6 +395,7 @@ await step('exporting a single .mcpack strips the folder', async () => {
 await step('going back to the homepage lists the addon with Edit and Delete', async () => {
   id('btn-close-addon').click();
   assert.equal(id('view-home').hidden, false, 'should be back on the library');
+  assert.equal(id('app').className.includes('has-project'), false, 'the shell still thinks a project is open');
   assert.equal(qa('.addon-row').length, 1);
   assert.ok(q('.addon-row .a-name').textContent.includes('Void Wolves'));
   const tags = qa('.addon-row .tag').map((n) => n.textContent);
@@ -396,6 +429,39 @@ await step('Delete removes the addon from the library', async () => {
   assert.equal(qa('.addon-row').length, 0, 'addon was not deleted');
   assert.equal(id('home-count').textContent, 'nothing saved yet');
   assert.equal(BU.state.meta, null, 'state was not cleared');
+  assert.equal(JSON.parse(store.get('bedrock-utility.addons.v1')).length, 0, 'registry not emptied');
+});
+
+/* Regression: deleting the last addon used to resurrect it, because an
+   empty library re-ran the one-time migration from the old single-project
+   key and read the deleted addon straight back out of it. */
+await step('a deleted addon stays deleted across a reload', async () => {
+  const legacy = JSON.stringify({
+    meta: { name: 'Legacy Addon', author: 'Me', namespace: 'legacy', version: [1, 0, 0], formatVersion: '1.21.10' },
+    entities: [], items: [], blocks: [], sounds: []
+  });
+  store.set('bedrock-utility.project.v1', legacy);
+  // simulate a fresh boot with that legacy project present
+  store.delete('bedrock-utility.addons.v1');
+  store.delete('bedrock-utility.migrated.v1');
+  const doc2 = reload();
+  await tick();
+  assert.equal(doc2.querySelectorAll('.addon-row').length, 1, 'legacy project did not migrate');
+  assert.ok(!store.has('bedrock-utility.project.v1'), 'legacy key was not consumed');
+  doc2.querySelector('.addon-row [data-del]').click();
+  await tick();
+  doc2.querySelector('.modal [data-yes]').click();
+  await tick();
+  assert.equal(doc2.querySelectorAll('.addon-row').length, 0, 'migrated addon was not deleted');
+
+  // and a further reload must not bring it back
+  const doc3 = reload();
+  await tick();
+  assert.equal(doc3.querySelectorAll('.addon-row').length, 0, 'deleted addon came back after reload');
+  assert.equal(doc3.getElementById('home-count').textContent, 'nothing saved yet');
+
+  // restore the original document for the remaining steps
+  globalThis.document = document;
 });
 
 console.log(log.join('\n'));

@@ -222,6 +222,7 @@
 
   var REGISTRY_KEY = 'bedrock-utility.addons.v1';
   var LEGACY_KEY = 'bedrock-utility.project.v1';
+  var MIGRATED_KEY = 'bedrock-utility.migrated.v1';
 
   /* =================================================================
      3. ADDON LIBRARY + PERSISTENCE
@@ -251,7 +252,11 @@
       list = raw ? JSON.parse(raw) : [];
       if (!Array.isArray(list)) list = [];
     } catch (err) { list = []; }
-    if (!list.length) list = migrateLegacy();
+    // The legacy migration runs at most once per browser. Without this
+    // guard, deleting the last addon would empty the registry, the guard
+    // would fire again on the next read, and the deleted addon would come
+    // back from the old single-project key.
+    if (!list.length && !localStorage.getItem(MIGRATED_KEY)) list = migrateLegacy();
     return list;
   }
 
@@ -259,6 +264,7 @@
   function migrateLegacy() {
     if (typeof localStorage === 'undefined') return [];
     try {
+      localStorage.setItem(MIGRATED_KEY, '1');
       var raw = localStorage.getItem(LEGACY_KEY);
       if (!raw) return [];
       var d = JSON.parse(raw);
@@ -267,7 +273,10 @@
         id: newAddonId(), meta: d.meta,
         entities: d.entities || [], items: d.items || [], blocks: d.blocks || [], sounds: d.sounds || []
       })];
-      try { localStorage.setItem(REGISTRY_KEY, JSON.stringify(one)); } catch (e2) { /* ignore */ }
+      try {
+        localStorage.setItem(REGISTRY_KEY, JSON.stringify(one));
+        localStorage.removeItem(LEGACY_KEY);
+      } catch (e2) { /* ignore */ }
       return one;
     } catch (err) { return []; }
   }
@@ -2019,6 +2028,12 @@
       el('view-editor').hidden = true;
     }
 
+    // On phones the sidebar becomes the bottom tab bar, and the brand mark
+    // in the top bar already goes Home — so drop the duplicate Home tab
+    // from the bar whenever there is something else to show.
+    var app = el('app');
+    if (app) app.classList.toggle('has-project', hasProject());
+
     renderTopbar();
     renderSidebar();
     if (route.view === 'home') renderHome();
@@ -2092,7 +2107,6 @@
     qsa('[data-go]', nav).forEach(function (b) {
       b.addEventListener('click', function () {
         var go = b.getAttribute('data-go');
-        el('sidebar').classList.remove('open');
         if (go.indexOf('editor:') === 0) navigate('editor', { kind: go.split(':')[1], uid: null });
         else navigate(go);
       });
@@ -3439,7 +3453,6 @@
         navigate('editor', { kind: route.kind, uid: null });
       });
     });
-    el('btn-menu').addEventListener('click', function () { el('sidebar').classList.toggle('open'); });
     el('hidden-file').addEventListener('change', function () {
       var f = this.files && this.files[0];
       if (!f || !pendingFileCb) return;
