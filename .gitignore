@@ -5,3 +5,6 @@ node_modules/
 .arena/
 *.log
 .DS_Store
+
+# GitHub Pages staging folder used by .github/workflows/deploy-pages.yml
+_site/

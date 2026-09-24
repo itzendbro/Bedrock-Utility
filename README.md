@@ -10,12 +10,12 @@ style.css       dark dashboard theme (Grid + Flexbox, no frameworks)
 script.js       state, component schemas, JSON generators, JSZip export, UI
 vendor/         local fallback copy of JSZip (the page loads it from a CDN first)
 test/           Node test suites for the generators and the UI pipeline
-docs/           generated component reference
+docs/           generated component reference + GitHub Pages hosting notes
 ```
 
 ## Quick start
 
-Any static file server works — there is no build step:
+Any static file server works — there is no build step and no dependencies:
 
 ```bash
 # option 1: python
@@ -28,6 +28,25 @@ npx serve .
 Then open <http://localhost:8080>. Opening `index.html` straight from disk also works
 in most browsers, but a local server is recommended (some browsers block
 `localStorage` and Blob downloads on `file://` URLs).
+
+### Host it on GitHub Pages
+
+The app is plain HTML/CSS/JS, so Pages can serve it with no build step. Two options,
+both documented in [docs/HOSTING.md](docs/HOSTING.md):
+
+**Option A — GitHub Actions.** Add the workflow from `docs/HOSTING.md` as
+`.github/workflows/deploy-pages.yml`, then set **Settings → Pages → Source** to
+**GitHub Actions**. It publishes only `index.html`, `style.css`, `script.js` and
+`vendor/`, so the live site is exactly the HTML/CSS/JS the app loads.
+
+**Option B — deploy from a branch.** Set **Settings → Pages → Source** to *Deploy from
+a branch*, pick `main` and `/ (root)`. No workflow needed; a few extra files
+(`test/`, `docs/`) are published alongside the app.
+
+Everything that makes this Pages-safe: all asset paths are relative (so it works from
+`https://<user>.github.io/<repo>/` and custom domains), routing uses hash fragments
+only, JSZip is fetched over HTTPS, and `.nojekyll` stops Jekyll from rewriting files.
+
 
 ## Using it
 
